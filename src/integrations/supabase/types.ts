@@ -14,7 +14,97 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      insights: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          meeting_id: string
+          username: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          username: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insights_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          meeting_date: string
+          title: string
+          username: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          meeting_date?: string
+          title: string
+          username: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          meeting_date?: string
+          title?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      minutes: {
+        Row: {
+          content: Json
+          id: string
+          meeting_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          id?: string
+          meeting_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          id?: string
+          meeting_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "minutes_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
