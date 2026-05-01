@@ -382,7 +382,17 @@ function InsightCard({
 }) {
   const [val, setVal] = useState(insight.content);
   const timer = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Auto-resize on mount and whenever val changes
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, [val]);
+
+  // Debounced persist to parent
   useEffect(() => {
     if (val === insight.content) return;
     if (timer.current) window.clearTimeout(timer.current);
@@ -394,28 +404,25 @@ function InsightCard({
   }, [val]);
 
   return (
-    <div className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4">
-      <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
-      <div className="flex-1">
+    <div className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm">
+      <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />
+      <div className="flex-1 min-w-0">
         <textarea
+          ref={textareaRef}
           value={val}
-          onChange={(e) => {
-            setVal(e.target.value);
-            e.target.style.height = "auto";
-            e.target.style.height = e.target.scrollHeight + "px";
-          }}
+          onChange={(e) => setVal(e.target.value)}
           placeholder="Write a takeaway…"
           rows={1}
-          className="w-full resize-none border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
+          className="w-full resize-none border-0 bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
         />
-        <div className="mt-1.5 text-[11px] text-muted-foreground">
+        <div className="mt-2 text-[11px] text-muted-foreground">
           {insight.username} · {formatTime(insight.created_at)}
         </div>
       </div>
       <button
         onClick={onDelete}
-        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-secondary hover:text-destructive"
-        aria-label="Delete"
+        className="mt-0.5 shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-secondary hover:text-destructive"
+        aria-label="Delete insight"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>

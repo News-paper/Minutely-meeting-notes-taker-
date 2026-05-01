@@ -20,15 +20,21 @@ interface Props {
 const SLASH_OPTIONS: {
   type: BlockType;
   label: string;
+  description: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { type: "paragraph", label: "Paragraph", icon: Type },
-  { type: "heading2", label: "Heading 2", icon: Heading2 },
-  { type: "heading3", label: "Heading 3", icon: Heading3 },
-  { type: "bullet", label: "Bullet list", icon: List },
-  { type: "numbered", label: "Numbered list", icon: ListOrdered },
-  { type: "todo", label: "To-do", icon: CheckSquare },
-  { type: "divider", label: "Divider", icon: Minus },
+  { type: "heading2", label: "Heading 2", description: "Large section heading", icon: Heading2 },
+  { type: "heading3", label: "Heading 3", description: "Medium section heading", icon: Heading3 },
+  { type: "bullet", label: "Bullet list", description: "Simple bulleted list", icon: List },
+  {
+    type: "numbered",
+    label: "Numbered list",
+    description: "Ordered numbered list",
+    icon: ListOrdered,
+  },
+  { type: "todo", label: "To-do", description: "Track tasks with checkboxes", icon: CheckSquare },
+  { type: "divider", label: "Divider", description: "Visual section separator", icon: Minus },
+  { type: "paragraph", label: "Paragraph", description: "Plain text paragraph", icon: Type },
 ];
 
 function placeholderFor(t: BlockType): string {
@@ -38,30 +44,35 @@ function placeholderFor(t: BlockType): string {
     case "heading3":
       return "Heading 3";
     case "bullet":
-      return "List item";
     case "numbered":
       return "List item";
     case "todo":
       return "To-do";
     default:
-      return "Type / for commands";
+      return "Type '/' for commands…";
   }
 }
 
 function classFor(t: BlockType): string {
   switch (t) {
     case "heading2":
-      return "text-2xl font-semibold tracking-tight";
+      return "text-2xl font-bold tracking-tight leading-snug";
     case "heading3":
-      return "text-xl font-semibold tracking-tight";
+      return "text-lg font-semibold tracking-tight leading-snug";
     default:
-      return "text-base";
+      return "text-base leading-relaxed";
   }
 }
 
 export function BlockEditor({ value, onChange }: Props) {
+  // slashFor: block id of the block showing the slash menu, or null
   const [slashFor, setSlashFor] = useState<string | null>(null);
+  // slashQuery: text typed after "/" to filter the menu
+  const [slashQuery, setSlashQuery] = useState("");
+  // which option is currently highlighted in the menu
+  const [menuIndex, setMenuIndex] = useState(0);
   const [hovered, setHovered] = useState<string | null>(null);
+
   const refs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const focusNext = useRef<string | null>(null);
 
@@ -104,27 +115,38 @@ export function BlockEditor({ value, onChange }: Props) {
     if (focusTarget) focusNext.current = focusTarget.id;
   };
 
-  const changeType = (id: string, type: BlockType) => {
-    if (type === "divider") {
-      updateBlock(id, { type, text: "" });
-      // also create a paragraph after divider for continued editing
-      insertAfter(id, "paragraph");
+  const applySlashOption = (blockId: string, optType: BlockType) => {
+    const block = value.find((b) => b.id === blockId);
+    if (!block) return;
+    // Strip the slash and any query text typed after it
+    const slashIndex = block.text.lastIndexOf("/");
+    const strippedText = slashIndex >= 0 ? block.text.slice(0, slashIndex).trimEnd() : block.text;
+
+    if (optType === "divider") {
+      updateBlock(blockId, { type: "divider", text: "" });
+      // Insert a paragraph after divider so user can keep typing
+      setTimeout(() => insertAfter(blockId, "paragraph"), 0);
     } else {
-      updateBlock(id, {
-        type,
-        text:
-          type === "todo"
-            ? (value.find((b) => b.id === id)?.text ?? "")
-            : (value.find((b) => b.id === id)?.text ?? ""),
-      });
+      updateBlock(blockId, { type: optType, text: strippedText });
+      focusNext.current = blockId;
     }
     setSlashFor(null);
+    setSlashQuery("");
+    setMenuIndex(0);
   };
+
+  const filteredOptions = slashQuery
+    ? SLASH_OPTIONS.filter(
+        (o) =>
+          o.label.toLowerCase().includes(slashQuery.toLowerCase()) ||
+          o.description.toLowerCase().includes(slashQuery.toLowerCase()),
+      )
+    : SLASH_OPTIONS;
 
   let numberedIdx = 0;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       {value.map((b) => {
         if (b.type === "numbered") numberedIdx += 1;
         else numberedIdx = 0;
@@ -164,10 +186,15 @@ export function BlockEditor({ value, onChange }: Props) {
         return (
           <div
             key={b.id}
-            className="group relative flex items-start gap-2"
+            className={cn(
+              "group relative flex items-start gap-2",
+              b.type === "heading2" && "mt-5 mb-1",
+              b.type === "heading3" && "mt-3 mb-0.5",
+            )}
             onMouseEnter={() => setHovered(b.id)}
             onMouseLeave={() => setHovered(null)}
           >
+            {/* Add block (+) button */}
             <div className="absolute -left-8 top-1.5">
               {showPlus && (
                 <button
@@ -180,23 +207,29 @@ export function BlockEditor({ value, onChange }: Props) {
               )}
             </div>
 
+            {/* Bullet point */}
             {b.type === "bullet" && (
-              <span className="mt-2.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/70" />
+              <span className="mt-2.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-foreground/60" />
             )}
+
+            {/* Numbered list index */}
             {b.type === "numbered" && (
-              <span className="mt-1 w-5 shrink-0 select-none text-sm text-foreground/70">
+              <span className="mt-1.5 w-5 shrink-0 select-none text-sm font-medium text-foreground/60">
                 {numberedIdx}.
               </span>
             )}
+
+            {/* To-do checkbox */}
             {b.type === "todo" && (
               <input
                 type="checkbox"
                 checked={!!b.checked}
                 onChange={(e) => updateBlock(b.id, { checked: e.target.checked })}
-                className="mt-2 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-accent)]"
+                className="mt-2 h-4 w-4 shrink-0 cursor-pointer rounded accent-primary"
               />
             )}
 
+            {/* Text area + slash menu */}
             <div className="relative flex-1">
               <textarea
                 ref={(el) => {
@@ -208,19 +241,67 @@ export function BlockEditor({ value, onChange }: Props) {
                 onChange={(e) => {
                   const v = e.target.value;
                   updateBlock(b.id, { text: v });
-                  if (v.endsWith("/") && (v === "/" || v.endsWith(" /"))) {
-                    setSlashFor(b.id);
-                  } else if (slashFor === b.id && !v.endsWith("/")) {
-                    setSlashFor(null);
+
+                  // Slash command detection: look for a "/" that starts at
+                  // the beginning OR is preceded by whitespace
+                  const slashIdx = v.lastIndexOf("/");
+                  if (slashIdx !== -1) {
+                    const before = v.slice(0, slashIdx);
+                    const isValidTrigger = before === "" || before.endsWith(" ") || before.endsWith("\n");
+                    if (isValidTrigger) {
+                      const query = v.slice(slashIdx + 1);
+                      // Only keep showing menu if query has no spaces (i.e. still in "command" mode)
+                      if (!query.includes(" ")) {
+                        setSlashFor(b.id);
+                        setSlashQuery(query);
+                        setMenuIndex(0);
+                      } else {
+                        setSlashFor(null);
+                        setSlashQuery("");
+                      }
+                    } else {
+                      setSlashFor(null);
+                      setSlashQuery("");
+                    }
+                  } else {
+                    if (slashFor === b.id) {
+                      setSlashFor(null);
+                      setSlashQuery("");
+                    }
                   }
-                  // auto-resize
+
+                  // Auto-resize textarea height
                   e.target.style.height = "auto";
                   e.target.style.height = e.target.scrollHeight + "px";
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
+                  // Navigate slash menu with arrow keys
+                  if (isSlash && filteredOptions.length > 0) {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setMenuIndex((i) => (i + 1) % filteredOptions.length);
+                      return;
+                    }
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setMenuIndex((i) => (i - 1 + filteredOptions.length) % filteredOptions.length);
+                      return;
+                    }
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applySlashOption(b.id, filteredOptions[menuIndex].type);
+                      return;
+                    }
+                  }
+
+                  if (e.key === "Escape") {
                     setSlashFor(null);
+                    setSlashQuery("");
+                    return;
+                  }
+
+                  if (e.key === "Enter" && !e.shiftKey && !isSlash) {
+                    e.preventDefault();
                     insertAfter(
                       b.id,
                       b.type === "heading2" || b.type === "heading3" ? "paragraph" : b.type,
@@ -228,46 +309,59 @@ export function BlockEditor({ value, onChange }: Props) {
                   } else if (e.key === "Backspace" && b.text === "") {
                     e.preventDefault();
                     removeBlock(b.id);
-                  } else if (e.key === "Escape") {
-                    setSlashFor(null);
                   }
                 }}
                 className={cn(
-                  "w-full resize-none border-0 bg-transparent leading-relaxed outline-none placeholder:text-muted-foreground/60",
+                  "w-full resize-none border-0 bg-transparent outline-none placeholder:text-muted-foreground/50",
                   classFor(b.type),
                   b.type === "todo" && b.checked && "text-muted-foreground line-through",
                 )}
               />
-              {isSlash && (
-                <div className="absolute left-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
-                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+
+              {/* Slash command menu */}
+              {isSlash && filteredOptions.length > 0 && (
+                <div className="absolute left-0 top-full z-30 mt-1.5 w-64 overflow-hidden rounded-xl border border-border bg-popover shadow-xl ring-1 ring-black/5">
+                  <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
                     Insert block
                   </div>
-                  {SLASH_OPTIONS.map((opt) => {
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        key={opt.type}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          // strip trailing slash
-                          const stripped = b.text.replace(/\/+\s*$/, "").trimEnd();
-                          updateBlock(b.id, { text: stripped, type: opt.type });
-                          setSlashFor(null);
-                          if (opt.type === "divider") {
-                            insertAfter(b.id, "paragraph");
-                          } else {
-                            focusNext.current = b.id;
-                          }
-                        }}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary"
-                      >
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        {opt.label}
-                      </button>
-                    );
-                  })}
+                  <div className="pb-1">
+                    {filteredOptions.map((opt, idx) => {
+                      const Icon = opt.icon;
+                      const isActive = idx === menuIndex;
+                      return (
+                        <button
+                          key={opt.type}
+                          type="button"
+                          onMouseEnter={() => setMenuIndex(idx)}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            applySlashOption(b.id, opt.type);
+                          }}
+                          className={cn(
+                            "flex w-full items-center gap-3 px-3 py-2 text-sm transition-colors",
+                            isActive
+                              ? "bg-accent/20 text-foreground"
+                              : "text-foreground hover:bg-secondary",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+                              isActive
+                                ? "border-accent bg-accent/20 text-accent-foreground"
+                                : "border-border bg-background text-muted-foreground",
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="flex flex-col items-start">
+                            <span className="font-medium">{opt.label}</span>
+                            <span className="text-xs text-muted-foreground">{opt.description}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
