@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { UsernameGate } from "@/components/minutely/UsernameGate";
 import { TopBar } from "@/components/minutely/TopBar";
 import { CategoryPill } from "@/components/minutely/CategoryPill";
 import { NewMeetingDialog } from "@/components/minutely/NewMeetingDialog";
+import { ConfirmDeleteDialog } from "@/components/minutely/ConfirmDeleteDialog";
+import { toast } from "sonner";
 import {
   CATEGORIES,
   FILTER_KEY,
@@ -38,6 +40,24 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
   const [filter, setFilter] = useState<Filter>("All");
   const [meetings, setMeetings] = useState<MeetingRow[] | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    const { error } = await supabase.from("meetings").delete().eq("id", deleteId);
+    setDeleting(false);
+    if (error) {
+      console.error("Supabase delete error [meetings]:", error);
+      toast.error("Could not delete meeting");
+      setDeleteId(null);
+      return;
+    }
+    toast.success("Meeting deleted");
+    setMeetings((prev) => prev?.filter(m => m.id !== deleteId) ?? []);
+    setDeleteId(null);
+  };
 
   useEffect(() => {
     const f = localStorage.getItem(FILTER_KEY) as Filter | null;
@@ -49,11 +69,19 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
   }, [filter]);
 
   const load = async () => {
-    const { data } = await supabase
+    const minutelyUsername = localStorage.getItem("minutely_username");
+    
+    let query = supabase
       .from("meetings")
       .select("id,title,description,meeting_date,category,username,created_at, minutes(content)")
       .order("meeting_date", { ascending: false })
       .order("created_at", { ascending: false });
+      
+    if (minutelyUsername) {
+      query = query.eq("username", minutelyUsername);
+    }
+      
+    const { data } = await query;
     setMeetings((data as MeetingRow[] | null) ?? []);
   };
 
@@ -153,9 +181,20 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
                   key={m.id}
                   to="/meeting/$id"
                   params={{ id: m.id }}
-                  className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition hover:border-accent/60 hover:shadow-sm"
+                  className="group relative flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition hover:border-accent/60 hover:shadow-sm"
                 >
-                  <div className="mb-3 flex items-start justify-between gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeleteId(m.id);
+                    }}
+                    className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-secondary hover:text-destructive group-hover:opacity-100"
+                    aria-label="Delete meeting"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <div className="mb-3 flex items-start justify-between gap-2 pr-6">
                     <CategoryPill category={m.category} />
                     <span className="text-xs text-muted-foreground">
                       {formatDate(m.meeting_date)}
@@ -183,6 +222,12 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
         onClose={() => {
           setShowNew(false);
         }}
+      />
+      <ConfirmDeleteDialog
+        open={!!deleteId}
+        deleting={deleting}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
       />
     </div>
   );

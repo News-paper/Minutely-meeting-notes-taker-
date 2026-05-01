@@ -5,6 +5,7 @@ import { UsernameGate } from "@/components/minutely/UsernameGate";
 import { TopBar } from "@/components/minutely/TopBar";
 import { CategoryPill } from "@/components/minutely/CategoryPill";
 import { BlockEditor } from "@/components/minutely/BlockEditor";
+import { ConfirmDeleteDialog } from "@/components/minutely/ConfirmDeleteDialog";
 import {
   CATEGORIES,
   formatDate,
@@ -56,6 +57,8 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDesc, setEditingDesc] = useState(false);
   const [showCatMenu, setShowCatMenu] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const initialLoad = useRef(true);
   const saveTimer = useRef<number | null>(null);
 
@@ -101,7 +104,7 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
     setSaveState("saving");
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(async () => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("minutes")
         .upsert(
           [
@@ -111,8 +114,12 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
               updated_at: new Date().toISOString(),
             },
           ],
-          { onConflict: "meeting_id" },
-        );
+          { onConflict: "meeting_id" }
+        )
+        .select();
+      
+      console.log("Supabase minutes upsert - data:", data, "error:", error);
+      
       if (error) {
         toast.error("Could not save minutes");
         setSaveState("idle");
@@ -125,19 +132,39 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
     };
   }, [blocks, id]);
 
+  const handleDelete = async () => {
+    if (!meeting) return;
+    setDeleting(true);
+    const { error } = await supabase.from("meetings").delete().eq("id", id);
+    setDeleting(false);
+    if (error) {
+      console.error("Supabase delete error [meetings]:", error);
+      toast.error("Could not delete meeting");
+      setDeleteConfirm(false);
+      return;
+    }
+    toast.success("Meeting deleted");
+    navigate({ to: "/" });
+  };
+
   const updateMeeting = async (patch: Partial<MeetingRow>) => {
     if (!meeting) return;
     setMeeting({ ...meeting, ...patch });
-    const { error } = await supabase.from("meetings").update(patch).eq("id", id);
+    const { data, error } = await supabase.from("meetings").update(patch).eq("id", id).select();
+    console.log("Supabase meeting update - data:", data, "error:", error);
     if (error) toast.error("Could not save changes");
   };
 
   const addInsight = async () => {
+    const minutelyUsername = localStorage.getItem("minutely_username") || username;
     const { data, error } = await supabase
       .from("insights")
-      .insert({ meeting_id: id, username, content: "" })
+      .insert({ meeting_id: id, username: minutelyUsername, content: "" })
       .select("*")
       .single();
+    
+    console.log("Supabase insights insert - data:", data, "error:", error);
+    
     if (error || !data) {
       toast.error("Could not add insight");
       return;
@@ -147,12 +174,14 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
 
   const updateInsight = async (insightId: string, content: string) => {
     setInsights((prev) => prev.map((i) => (i.id === insightId ? { ...i, content } : i)));
-    await supabase.from("insights").update({ content }).eq("id", insightId);
+    const { data, error } = await supabase.from("insights").update({ content }).eq("id", insightId).select();
+    console.log("Supabase insights update - data:", data, "error:", error);
   };
 
   const removeInsight = async (insightId: string) => {
     setInsights((prev) => prev.filter((i) => i.id !== insightId));
-    await supabase.from("insights").delete().eq("id", insightId);
+    const { data, error } = await supabase.from("insights").delete().eq("id", insightId).select();
+    console.log("Supabase insights delete - data:", data, "error:", error);
   };
 
   if (notFound) {
@@ -200,13 +229,23 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
       />
 
       <main className="mx-auto max-w-3xl px-6 pb-32 pt-8 sm:pl-16">
-        <button
-          onClick={() => navigate({ to: "/" })}
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to dashboard
-        </button>
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            onClick={() => navigate({ to: "/" })}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to dashboard
+          </button>
+          
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Delete</span>
+          </button>
+        </div>
 
         {/* Header */}
         <div className="mb-8">
@@ -327,6 +366,13 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
           )}
         </section>
       </main>
+
+      <ConfirmDeleteDialog
+        open={deleteConfirm}
+        deleting={deleting}
+        onClose={() => setDeleteConfirm(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

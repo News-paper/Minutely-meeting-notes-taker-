@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { CATEGORIES, type Category } from "@/lib/minutely";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,17 +26,25 @@ export function NewMeetingDialog({ username, open, onClose }: Props) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
+    const minutelyUsername = localStorage.getItem("minutely_username") || username;
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || null,
+      meeting_date: date,
+      category,
+      username: minutelyUsername,
+    };
+    
+    console.log("Inserting meeting:", payload);
+    
     const { data, error } = await supabase
       .from("meetings")
-      .insert({
-        title: title.trim(),
-        meeting_date: date,
-        category,
-        description: description.trim() || null,
-        username,
-      })
+      .insert(payload)
       .select("id")
       .single();
+    
+    console.log("Supabase meetings insert - data:", data, "error:", error);
+    
     setSaving(false);
     if (error || !data) {
       toast.error("Could not create meeting");
@@ -130,8 +138,9 @@ export function NewMeetingDialog({ username, open, onClose }: Props) {
             <button
               type="submit"
               disabled={saving || !title.trim()}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
             >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Creating…" : "Create meeting"}
             </button>
           </div>
