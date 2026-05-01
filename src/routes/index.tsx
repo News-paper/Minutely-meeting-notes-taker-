@@ -55,7 +55,7 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
       return;
     }
     toast.success("Meeting deleted");
-    setMeetings((prev) => prev?.filter(m => m.id !== deleteId) ?? []);
+    setMeetings((prev) => prev?.filter((m) => m.id !== deleteId) ?? []);
     setDeleteId(null);
   };
 
@@ -70,17 +70,17 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
 
   const load = async () => {
     const minutelyUsername = localStorage.getItem("minutely_username");
-    
+
     let query = supabase
       .from("meetings")
       .select("id,title,description,meeting_date,category,username,created_at, minutes(content)")
       .order("meeting_date", { ascending: false })
       .order("created_at", { ascending: false });
-      
+
     if (minutelyUsername) {
       query = query.eq("username", minutelyUsername);
     }
-      
+
     const { data } = await query;
     setMeetings((data as MeetingRow[] | null) ?? []);
   };
@@ -89,8 +89,7 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
     load();
   }, []);
 
-  const visible =
-    meetings?.filter((m) => filter === "All" || m.category === filter) ?? null;
+  const visible = meetings?.filter((m) => filter === "All" || m.category === filter) ?? null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,11 +110,10 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Meetings
-            </h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Meetings</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Everything documented under <span className="font-medium text-foreground">{username}</span>.
+              Everything documented under{" "}
+              <span className="font-medium text-foreground">{username}</span>.
             </p>
           </div>
           <button
@@ -149,7 +147,10 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
         {visible === null ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-40 animate-pulse rounded-2xl border border-border bg-card" />
+              <div
+                key={i}
+                className="h-40 animate-pulse rounded-2xl border border-border bg-card"
+              />
             ))}
           </div>
         ) : visible.length === 0 ? (

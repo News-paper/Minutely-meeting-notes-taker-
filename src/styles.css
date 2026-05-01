@@ -1,7 +1,5 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @import "tw-animate-css";
-@source "../src";
-
 @custom-variant dark (&:is(.dark *));
 
 /*
@@ -152,7 +150,13 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Inter,
+      sans-serif;
     font-feature-settings: "cv11", "ss01";
   }
 }

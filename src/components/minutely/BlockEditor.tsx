@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Type, Heading2, Heading3, List, ListOrdered, CheckSquare, Minus } from "lucide-react";
+import {
+  Plus,
+  Type,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  CheckSquare,
+  Minus,
+} from "lucide-react";
 import { newBlock, type Block, type BlockType } from "@/lib/minutely";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +17,11 @@ interface Props {
   onChange: (next: Block[]) => void;
 }
 
-const SLASH_OPTIONS: { type: BlockType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const SLASH_OPTIONS: {
+  type: BlockType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
   { type: "paragraph", label: "Paragraph", icon: Type },
   { type: "heading2", label: "Heading 2", icon: Heading2 },
   { type: "heading3", label: "Heading 3", icon: Heading3 },
@@ -97,7 +110,13 @@ export function BlockEditor({ value, onChange }: Props) {
       // also create a paragraph after divider for continued editing
       insertAfter(id, "paragraph");
     } else {
-      updateBlock(id, { type, text: type === "todo" ? value.find((b) => b.id === id)?.text ?? "" : value.find((b) => b.id === id)?.text ?? "" });
+      updateBlock(id, {
+        type,
+        text:
+          type === "todo"
+            ? (value.find((b) => b.id === id)?.text ?? "")
+            : (value.find((b) => b.id === id)?.text ?? ""),
+      });
     }
     setSlashFor(null);
   };
@@ -202,7 +221,10 @@ export function BlockEditor({ value, onChange }: Props) {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     setSlashFor(null);
-                    insertAfter(b.id, b.type === "heading2" || b.type === "heading3" ? "paragraph" : b.type);
+                    insertAfter(
+                      b.id,
+                      b.type === "heading2" || b.type === "heading3" ? "paragraph" : b.type,
+                    );
                   } else if (e.key === "Backspace" && b.text === "") {
                     e.preventDefault();
                     removeBlock(b.id);

@@ -6,13 +6,7 @@ import { TopBar } from "@/components/minutely/TopBar";
 import { CategoryPill } from "@/components/minutely/CategoryPill";
 import { BlockEditor } from "@/components/minutely/BlockEditor";
 import { ConfirmDeleteDialog } from "@/components/minutely/ConfirmDeleteDialog";
-import {
-  CATEGORIES,
-  formatDate,
-  formatTime,
-  newBlock,
-  type Block,
-} from "@/lib/minutely";
+import { CATEGORIES, formatDate, formatTime, newBlock, type Block } from "@/lib/minutely";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -65,11 +59,7 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
   // Load
   useEffect(() => {
     (async () => {
-      const { data: m } = await supabase
-        .from("meetings")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+      const { data: m } = await supabase.from("meetings").select("*").eq("id", id).maybeSingle();
       if (!m) {
         setNotFound(true);
         return;
@@ -114,12 +104,12 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
               updated_at: new Date().toISOString(),
             },
           ],
-          { onConflict: "meeting_id" }
+          { onConflict: "meeting_id" },
         )
         .select();
-      
+
       console.log("Supabase minutes upsert - data:", data, "error:", error);
-      
+
       if (error) {
         toast.error("Could not save minutes");
         setSaveState("idle");
@@ -162,9 +152,9 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
       .insert({ meeting_id: id, username: minutelyUsername, content: "" })
       .select("*")
       .single();
-    
+
     console.log("Supabase insights insert - data:", data, "error:", error);
-    
+
     if (error || !data) {
       toast.error("Could not add insight");
       return;
@@ -174,7 +164,11 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
 
   const updateInsight = async (insightId: string, content: string) => {
     setInsights((prev) => prev.map((i) => (i.id === insightId ? { ...i, content } : i)));
-    const { data, error } = await supabase.from("insights").update({ content }).eq("id", insightId).select();
+    const { data, error } = await supabase
+      .from("insights")
+      .update({ content })
+      .eq("id", insightId)
+      .select();
     console.log("Supabase insights update - data:", data, "error:", error);
   };
 
@@ -237,7 +231,7 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
             <ArrowLeft className="h-4 w-4" />
             Back to dashboard
           </button>
-          
+
           <button
             onClick={() => setDeleteConfirm(true)}
             className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition hover:bg-secondary hover:text-destructive"

@@ -34,17 +34,13 @@ export function NewMeetingDialog({ username, open, onClose }: Props) {
       category,
       username: minutelyUsername,
     };
-    
+
     console.log("Inserting meeting:", payload);
-    
-    const { data, error } = await supabase
-      .from("meetings")
-      .insert(payload)
-      .select("id")
-      .single();
-    
+
+    const { data, error } = await supabase.from("meetings").insert(payload).select("id").single();
+
     console.log("Supabase meetings insert - data:", data, "error:", error);
-    
+
     setSaving(false);
     if (error || !data) {
       toast.error("Could not create meeting");

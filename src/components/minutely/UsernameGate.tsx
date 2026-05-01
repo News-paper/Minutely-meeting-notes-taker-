@@ -27,9 +27,7 @@ export function UsernameGate({ children }: Props) {
               <span className="text-2xl font-semibold">M</span>
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Minutely</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your meeting minutes, organised.
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">Your meeting minutes, organised.</p>
           </div>
           <form
             onSubmit={(e) => {
