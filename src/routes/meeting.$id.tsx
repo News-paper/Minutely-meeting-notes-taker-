@@ -105,7 +105,13 @@ function MeetingInner({ username, signOut }: { username: string; signOut: () => 
       const { error } = await supabase
         .from("minutes")
         .upsert(
-          { meeting_id: id, content: blocks as unknown as object, updated_at: new Date().toISOString() },
+          [
+            {
+              meeting_id: id,
+              content: blocks as unknown as never,
+              updated_at: new Date().toISOString(),
+            },
+          ],
           { onConflict: "meeting_id" },
         );
       if (error) {
