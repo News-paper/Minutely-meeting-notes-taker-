@@ -1,6 +1,6 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 
-import appCss from "../styles.css?url";
+import "../styles.css";
 import { ThemeProvider } from "@/components/minutely/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -27,43 +27,9 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Minutely — Your meeting minutes, organised" },
-      { name: "description", content: "A lightweight meeting minutes tool. Document, organise and share takeaways from every meeting." },
-      { name: "author", content: "Minutely" },
-      { property: "og:title", content: "Minutely — Your meeting minutes, organised" },
-      { property: "og:description", content: "A lightweight meeting minutes tool." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   return (
