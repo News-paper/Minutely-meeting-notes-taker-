@@ -11,7 +11,6 @@ import {
   formatTime,
   newBlock,
   type Block,
-  type Category,
 } from "@/lib/minutely";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
