@@ -69,19 +69,12 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
   }, [filter]);
 
   const load = async () => {
-    const minutelyUsername = localStorage.getItem("minutely_username");
-
-    let query = supabase
+    const { data } = await supabase
       .from("meetings")
       .select("id,title,description,meeting_date,category,username,created_at, minutes(content)")
       .order("meeting_date", { ascending: false })
       .order("created_at", { ascending: false });
 
-    if (minutelyUsername) {
-      query = query.eq("username", minutelyUsername);
-    }
-
-    const { data } = await query;
     setMeetings((data as MeetingRow[] | null) ?? []);
   };
 
@@ -112,7 +105,7 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">Meetings</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Everything documented under{" "}
+              Shared workspace — you&apos;re signed in as{" "}
               <span className="font-medium text-foreground">{username}</span>.
             </p>
           </div>
@@ -208,7 +201,7 @@ function Dashboard({ username, signOut }: { username: string; signOut: () => voi
                     {preview || m.description || "No notes yet."}
                   </p>
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
-                    <span>by {m.username}</span>
+                    <span>Created by <span className="font-medium text-foreground/70">{m.username}</span></span>
                   </div>
                 </Link>
               );
